@@ -1,6 +1,7 @@
 import numpy as np
 
-from utils import activation, derivative_activation
+from main import output
+from utils import activation, derivative_activation, mean_squared_error, binary_cross_entropy, categorical_cross_entropy, derivative_mse,derivative_bce, derivative_cce
 
 class Layer:
 
@@ -14,6 +15,7 @@ class Layer:
         self.z = None
         self.a = None
         self.delta = None
+        self.loss_type = "mse"
 
     # ------------------
     # Forward Pass
@@ -32,7 +34,7 @@ class Layer:
        if delta_next is None: # Output-Layer
            # hier wird der Gradient entweder als positiv mit (output - target) oder negativ mit (target - output) definiert
            # Da der Gradient hier negativ definiert ist wird delta_W zu W_alt addiert und nicht subtrahiert
-           self.delta =  derivative_activation(self.z, type=self.activation) * (target - self.a) # (batch_size, output_dim) * (batch_size, output_dim) # Wenn es nur einen "Gesamt"-Output gibt (batch_size, 1)
+           self.delta =  derivative_activation(self.z, type=self.activation) * self.derivative_loss(target, output) # (batch_size, output_dim) * (batch_size, output_dim) # Wenn es nur einen "Gesamt"-Output gibt (batch_size, 1)
            return self.delta
        else: # Hidden-Layer
            self.delta = derivative_activation(self.z, type=self.activation) * (delta_next @ W_next) # (batch_size, output_dim) * (batch_size, output_dim_next) @ (output_dim_next, output_dim) = (batch_size, output_dim)
@@ -47,18 +49,31 @@ class Layer:
         # damit np.sum() den array nicht abflacht keepdims=True
         self.bias_vector += (eta * self.delta).sum(axis=0, keepdims=True) # (batch_size, output_dim) --> (1, output_dim) (mit der sum-Funktion werden alle Zeilen von self.delta addiert
 
+    def derivative_loss(self, target, output):
+        if self.loss_type == "mse":
+            return derivative_mse(target, output)
+        elif self.loss_type == "bce":
+            return derivative_bce(target, output)
+        elif self.loss_type == "cce":
+            return derivative_cce(target, output)
 
 
 class NeuralNetwork:
 
-    def __init__(self, listLayers):
+    def __init__(self, listLayers, loss_type="mse"):
         self.listLayers = listLayers
         self.length = len(self.listLayers)
+        self.loss_type = loss_type
+        # ändern vom loss_type in der Output-Layer
+        self.listLayers[-1].loss_type = self.loss_type
+        # Prediction / Output für loss-Methode
+        self.output = None
 
     def forward(self, input):
         output = input
         for i in range(self.length):
-            output = self.listLayers[i].forward(output) # rekursive definition von output
+            output = self.listLayers[i].forward(output)# rekursive definition von output
+        self.output = output
         return output
 
     def backward(self, target):
@@ -75,4 +90,12 @@ class NeuralNetwork:
     def update_vals(self, eta):
         for i in range(self.length):
             self.listLayers[i].weight_matrix += eta * (self.listLayers[i].delta.T @ self.listLayers[i].input) # Layer.input wird mit Layer.forward aktualisiert d. h. mit NeuralNetwork.forward auch
-            self.listLayers[i].bias_vector += (eta * self.listLayers[i].delta).sum(axis=0, keepdims=True)
+            self.listLayers[i].bias_vector += (eta * self.listLayers[i].delta).sum(axis=0, keepdims=True) # hier kann man die Performance mit np.mean() verbessern
+
+    def loss(self, target):
+        if self.loss_type == "mse":
+            return mean_squared_error(target, self.output)
+        elif self.loss_type == "bce":
+            return binary_cross_entropy(target, self.output)
+        elif self.loss_type == "cce":
+            return categorical_cross_entropy(target, self.output)
