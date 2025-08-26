@@ -16,8 +16,6 @@ def derivative_activation(x, type="sigmoid"):
 def prediction(x): # wandelt Sigmoid werte in binäre Klassifikation um
     return np.round(x)
 
-def cost(error):
-    return 0.5 * error**2
 # target, output: (batch_size, output_dim)
 # np.mean() flattet das array zuerst und berechnet dann den Durchschnitt
 
@@ -45,4 +43,3 @@ def categorical_cross_entropy(target, output): # hier ist das target für ein sa
 
 def derivative_cce(target, output):
     return - target / output
-

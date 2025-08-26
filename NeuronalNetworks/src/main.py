@@ -1,16 +1,11 @@
 import numpy as np
-
 import matplotlib.pyplot as plt
-
 from pathlib import Path
-
-from classes import Layer
+from classes import Layer, NeuralNetwork, Optimizer
 
 # Auf vorher generierte synthetische Datensätze zugreifen mit pathlib
 current_file = Path(__file__)
-
 root_file = current_file.parent.parent
-
 synthetischer_Datensatz_file = root_file / "data" / "synthetischer_Datensatz_mit_2_Klassen.csv"
 
 # ==========================
@@ -32,19 +27,24 @@ epochs = 100
 
 # Neuronales Netzwerk mit Layer Klasse: 2-2-1
 
-Layer1 = Layer(2, 2, "sigmoid")
+Layer1 = Optimizer(2, 2, "sigmoid")
+Layer2 = Optimizer(2, 1, "sigmoid")
 
-Layer2 = Layer(2, 1, "sigmoid")
+Net = NeuralNetwork([Layer1, Layer2]) # standardmäßig ist MSE als loss-function ausgewählt
+
+mean_errors = []
+
+Net.load_vals()
 
 for epoch in range(epochs):
-    output1 = Layer1.forward(X) #aktualisiert self.z und self.a für backward-Funktion
-    output2 = Layer2.forward(output1)
+    Net.forward(X)
+    mean_errors.append(float(Net.loss(labels))) # mittleren Fehler berechnen
+    Net.backward(labels)
+    Net.update_vals(eta)
 
-    delta2 = Layer2.backward(target=labels) # berechnet delta2 aus error = Layer2.a - labels
-    delta1 = Layer1.backward(delta2, Layer2.weight_matrix) # berechnet delta1 aus delta2, Layer2.weight_matrix und Layer1.z
+Net.save_vals()
 
-    Layer2.update_val(eta) # updatet die Instanzvariablen self.weight_matrix und self.bias mithilfe von vorher berechneten Instanzvariable self.delta und der unabhängigen Lernrate eta
-    Layer1.update_val(eta)
+print(mean_errors)
 
 # --------------------------------------
 # Visualisierung der Entscheidungsgrenze
@@ -62,8 +62,7 @@ pairs = np.stack((xv, yv), axis=-1) # entsprechende Einträge aus xv und yv als 
 
 pairs_flat = pairs.reshape(-1, pairs.shape[2]) # neuer flacher (10000, 2) array der kompatibel mit feed_forward(x) ist
 
-o1 = Layer1.forward(pairs_flat)
-output = Layer2.forward(o1)
+output = Net.forward(pairs_flat)
 
 flat = output.ravel() # (10000,) array
 

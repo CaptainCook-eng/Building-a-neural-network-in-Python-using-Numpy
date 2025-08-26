@@ -1,7 +1,10 @@
 import numpy as np
-
-from main import output
+import json
+from pathlib import Path
 from utils import activation, derivative_activation, mean_squared_error, binary_cross_entropy, categorical_cross_entropy, derivative_mse,derivative_bce, derivative_cce
+
+current_file = Path(__file__)
+root_file = current_file.parent.parent
 
 class Layer:
 
@@ -34,7 +37,7 @@ class Layer:
        if delta_next is None: # Output-Layer
            # hier wird der Gradient entweder als positiv mit (output - target) oder negativ mit (target - output) definiert
            # Da der Gradient hier negativ definiert ist wird delta_W zu W_alt addiert und nicht subtrahiert
-           self.delta =  derivative_activation(self.z, type=self.activation) * self.derivative_loss(target, output) # (batch_size, output_dim) * (batch_size, output_dim) # Wenn es nur einen "Gesamt"-Output gibt (batch_size, 1)
+           self.delta =  derivative_activation(self.z, type=self.activation) * self.derivative_loss(target, self.a) # (batch_size, output_dim) * (batch_size, output_dim) # Wenn es nur einen "Gesamt"-Output gibt (batch_size, 1)
            return self.delta
        else: # Hidden-Layer
            self.delta = derivative_activation(self.z, type=self.activation) * (delta_next @ W_next) # (batch_size, output_dim) * (batch_size, output_dim_next) @ (output_dim_next, output_dim) = (batch_size, output_dim)
@@ -68,6 +71,9 @@ class NeuralNetwork:
         self.listLayers[-1].loss_type = self.loss_type
         # Prediction / Output für loss-Methode
         self.output = None
+        self.filename = root_file / "data" / "Networks" / "Net.json"
+        # json kann keine arrays speichern deswegen .tolist()
+        self.value_dict = {i: {"weight": Layer.weight_matrix.tolist(), "bias": Layer.bias_vector.tolist()} for i, Layer in enumerate(self.listLayers)}
 
     def forward(self, input):
         output = input
@@ -79,7 +85,7 @@ class NeuralNetwork:
     def backward(self, target):
         # Man könnte alternativ zu reversed(range) auch list.reverse() benutzen um von hinten nach vorne durch die Liste zu iterieren
         # Output-Layer
-        self.listLayers[-1].delta = self.listLayers[-1].backward(target)
+        self.listLayers[-1].delta = self.listLayers[-1].backward(None, None, target)
         # Hidden-Layers
         for i in reversed(range(self.length - 1)):
             self.listLayers[i].delta = self.listLayers[i].backward(
@@ -99,3 +105,29 @@ class NeuralNetwork:
             return binary_cross_entropy(target, self.output)
         elif self.loss_type == "cce":
             return categorical_cross_entropy(target, self.output)
+# json kann keine ndarrays speichern
+    def save_vals(self):
+        self.value_dict.update({i: {"weight": Layer.weight_matrix.tolist(), "bias": Layer.bias_vector.tolist()} for i, Layer in enumerate(self.listLayers)}) # dictionary muss upgedatet werden um neue Werte zu laden
+        with open(self.filename, "w") as json_file:
+            json.dump(self.value_dict, json_file, indent=4)
+
+    def load_vals(self):
+        with open(self.filename, "r") as f:
+            data = json.load(f)
+        for i in range(self.length):
+            self.listLayers[i].weight_matrix = np.array(data[f"{i}"]["weight"])
+            self.listLayers[i].bias_vector = np.array(data[f"{i}"]["bias"])
+
+class Optimizer(Layer):
+
+    def __init__(self, input_dim, output_dim, activation="sigmoid"): # neue Instanzvariable delta_W
+        super().__init__(input_dim, output_dim, activation)
+        self.delta_W = np.zeros((output_dim, input_dim))
+        self.delta_B = np.zeros((1, output_dim))
+
+    def update_val(self, eta, alpha):
+
+        self.weight_matrix += (alpha - 1) * (eta * (self.delta.T @ self.input)) + alpha * self.delta_W
+        self.delta_W = eta * (self.delta.T @ self.input)
+        self.bias_vector += (alpha - 1) * (eta * self.delta).sum(axis=0, keepdims=True) + alpha * self.delta_B
+        self.delta_B = (eta * self.delta).sum(axis=0, keepdims=True)
