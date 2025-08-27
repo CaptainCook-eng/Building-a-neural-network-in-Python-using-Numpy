@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from classes import Layer, NeuralNetwork, Optimizer
+from classes import Layer, NeuralNetwork, Momentum, Optimizer, Adam
 
 # Auf vorher generierte synthetische Datensätze zugreifen mit pathlib
 current_file = Path(__file__)
 root_file = current_file.parent.parent
-synthetischer_Datensatz_file = root_file / "data" / "synthetischer_Datensatz_mit_2_Klassen.csv"
+synthetischer_Datensatz_file = root_file / "data" / "synthetischer_Datensatz_mit_2_Klassen.csv" # in ML wird diese Tabelle mit features | label auch "observations" genannt
 
 # ==========================
 # Datensatz laden
@@ -18,7 +18,7 @@ labels = data[:, 2].reshape(-1, 1)  # Zielwerte als Spaltenvektor # (100, 1) # (
 np.random.seed(42) # wofür genau braucht man das
 
 # Trainingsvariablen setzen
-eta = 0.1
+
 epochs = 100
 
 # ==========================
@@ -27,20 +27,26 @@ epochs = 100
 
 # Neuronales Netzwerk mit Layer Klasse: 2-2-1
 
-Layer1 = Optimizer(2, 2, "sigmoid")
-Layer2 = Optimizer(2, 1, "sigmoid")
+Layer1 = Momentum(2, 2, "sigmoid")
+Layer2 = Momentum(2, 1, "sigmoid")
+
+
 
 Net = NeuralNetwork([Layer1, Layer2]) # standardmäßig ist MSE als loss-function ausgewählt
 
 mean_errors = []
 
 Net.load_vals()
+Net.eta = 0.1
+Net.alpha = 0.01
+
+optimizer = Adam(Net.eta, forgetting_factor1=0.9, forgetting_factor2=0.99)
 
 for epoch in range(epochs):
     Net.forward(X)
     mean_errors.append(float(Net.loss(labels))) # mittleren Fehler berechnen
     Net.backward(labels)
-    Net.update_vals(eta)
+    Net.update_vals(optimizer)
 
 Net.save_vals()
 

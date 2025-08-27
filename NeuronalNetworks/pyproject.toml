@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "NeuralNetwork"
+version = 0.0.1
+authors = [
+    {name="CaptainCook", email="erik.hybel@gmx.de"}
+]
+description = "a neural network framework build with Numpy"
+readme = "README.md"
+requires-python = ">=3.12"
+
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "json",
+    "Pathlib"
+]
+
+keywords = ["machine learning", "neural networks", "deep learning", "image recognition", "image processing"]
+classifiers = [
+    "Developement Status :: Planning",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent", # terminating comma, why is it needed?
+]
+
+
+[project.urls]
+Homepage = "https://github" # hier muss die github URL rein
+Documentation = ""
+Issues = "https://github" # hier muss die Issues URL rein
+Repository = ""
+Changelog = ""
+
+
+
