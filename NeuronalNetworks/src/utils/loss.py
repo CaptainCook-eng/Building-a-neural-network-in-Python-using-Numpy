@@ -6,8 +6,12 @@ import numpy as np
 def mean_squared_error(target, output): # positiv definierter Gradient
     return 0.5 * np.mean((target - output)**2) # statt Standard: 0.5 * np.sum(target - output)**2  np.mean(), weil der Fehler so nicht mit der Batch Größe wächst (ist so Standard in neueren Frameworks)
 
+"""
+Hier habe ich wochenlang einen Fehler gemacht die Ableitung von MSE wird so berechnet: L = 1/2 * (target - output)**2 
+d/d*output (L) = -(target - output) = (output - target)!!!!
+"""
 def derivative_mse(target, output):
-    return target - output
+    return output - target
 """
 cross entropy:
 cross entropy is a measure for how dissimilar two probability distributions are over the same set of events.

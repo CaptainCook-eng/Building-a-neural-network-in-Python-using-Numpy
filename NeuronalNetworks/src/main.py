@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from classes import Layer, NeuralNetwork, Momentum, Optimizer, Adam
+from classes.Layer import Layer
+from classes.NeuralNetwork import NeuralNetwork
+from classes.Optimizer import *
+from utils.OneHotEncoding import *
 
 # Auf vorher generierte synthetische Datensätze zugreifen mit pathlib
 current_file = Path(__file__)
@@ -15,47 +18,80 @@ data = np.loadtxt(synthetischer_Datensatz_file, delimiter=",", skiprows=1)
 X = data[:, :2]   # Features # (100, 2)
 labels = data[:, 2].reshape(-1, 1)  # Zielwerte als Spaltenvektor # (100, 1) # (batch_size, output_dim)
 
-np.random.seed(42) # wofür genau braucht man das
+#============================
+#MNIST Datensatz
+#============================
+import tensorflow as tf
+from PIL import Image
 
-# Trainingsvariablen setzen
 
-epochs = 100
+mnist = tf.keras.datasets.mnist
 
-# ==========================
+# training input: an array of 60.000 gray scale 255 images in 28x28 format
+(training_inputs, training_labels), (test_inputs, test_labels) = mnist.load_data()
+
+training_inputs = np.reshape(training_inputs, shape=(60000, 784))
+# keep weights and biases from exploding (activation function saturation)
+training_inputs = training_inputs / 255.0
+
+training_labels = np.reshape(training_labels, shape=(60000, 1))
+training_labels = as_one_hot(training_labels)
+
+# actually really important for testing
+# seeding the RNG (random number generator) lets you reproduce an experiment based on "random" numbers multiple times
+# here it manages the weights and bias initialization; the RNG always produces the same weights and biases after initialization
+# This lets you compare e.g. different optimizers without leeway for randomness
+np.random.seed(42)
+
+# Anzahl der Trainingsdurchläufe
+epochs = 20
+batch_size = 64
+
+# ========================================
 # Training (Feedforward + Backpropagation)
-# ==========================
+# ========================================
 
-# Neuronales Netzwerk mit Layer Klasse: 2-2-1
+# Neuronales Netzwerk mit Architektur: 784-16-16-10
 
-Layer1 = Momentum(2, 2, "sigmoid")
-Layer2 = Momentum(2, 1, "sigmoid")
+Layer1 = Layer(784, 16, "sigmoid")
+Layer2 = Layer(16, 16, "sigmoid")
+Layer3 = Layer(16, 10, activation="sigmoid")
+output_dim = Layer3.output_dim
+
+optimizer = Momentum(eta=0.01, alpha=0.1)
 
 
-
-Net = NeuralNetwork([Layer1, Layer2]) # standardmäßig ist MSE als loss-function ausgewählt
+Net = NeuralNetwork([Layer1, Layer2, Layer3],eta=0.001, loss_type="cce", optimizer=None) # standardmäßig ist MSE als loss-function ausgewählt
 
 mean_errors = []
 
-Net.load_vals()
-Net.eta = 0.1
-Net.alpha = 0.01
+Net.load_vals(Net.filename)
 
-optimizer = Adam(Net.eta, forgetting_factor1=0.9, forgetting_factor2=0.99)
+observations = np.hstack((training_inputs, training_labels))
+samples, features_plus_labels = observations.shape
 
 for epoch in range(epochs):
-    Net.forward(X)
-    mean_errors.append(float(Net.loss(labels))) # mittleren Fehler berechnen
-    Net.backward(labels)
-    Net.update_vals(optimizer)
+    np.random.shuffle(observations)
+
+    inputs = observations[:, :-output_dim]
+    target = observations[:, -output_dim:]
+    print(target.shape)
+    for sample in range(0, samples, batch_size):
+        Net.forward(inputs[sample : sample + batch_size, :])
+        Net.backward(target[sample : sample + batch_size, :])
+        Net.update_vals()
+        # mittlerer Fehler pro batch -> hat epochs * round(60.000 / 64) Einträge
+        mean_errors.append(float(Net.loss(target[sample : sample + batch_size])))
 
 Net.save_vals()
 
+print(len(mean_errors))
 print(mean_errors)
 
 # --------------------------------------
 # Visualisierung der Entscheidungsgrenze
 # --------------------------------------
-
+"""
 # 100 x 100 Meshgrid
 
 x = np.linspace(-0.5, 1.5, 100)
@@ -87,3 +123,4 @@ plt.title("Trainiertes 2-2-1 Netz: Feedforward")
 plt.legend()
 plt.grid(True)
 plt.show()
+"""

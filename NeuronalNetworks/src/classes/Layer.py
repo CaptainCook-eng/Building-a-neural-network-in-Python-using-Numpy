@@ -1,18 +1,26 @@
 from utils.activation import * # importiert numpy as np mit
 from utils.loss import *
+from utils.weightInit import *
 
 class Layer:
 
     def __init__(self, input_dim, output_dim, activation="sigmoid"):
-        self.weight_matrix = np.random.randn(output_dim, input_dim) * 0.1 # (output_dim, input_dim)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        # initializing weights and biases
+        self.weight_matrix = glorot(input_dim, output_dim)
         self.bias_vector = np.zeros((1, output_dim))
-        self.activation = activation
+
 
         # Variablen für Forward / Backward Pass speichern
         self.input = None
         self.z = None
         self.a = None
         self.delta = None
+
+        # modifying the network
+        self.activation = activation
         self.loss_type = "mse"
 
     # ------------------
@@ -30,8 +38,8 @@ class Layer:
     # ------------------
     def backward(self, delta_next=None, w_next=None, target=None):
        if delta_next is None: # Output-Layer
-           # hier wird der Gradient entweder als positiv mit (output - target) oder negativ mit (target - output) definiert,
-           # da der Gradient hier negativ definiert ist, wird delta_W zu W_alt addiert und nicht subtrahiert
+           # Ich habs komplett vercheckt und die Kettenregel falsch angewendet, wodurch ich die ganze Zeit ein extra Minus-Zeichen berechnet hab
+           # -> negativer gradient wird -> zeigt in Richtung Minima -> wird addiert statt subtrahiert
            self.delta =  derivative_activation(self.z, type=self.activation) * self.derivative_loss(target, self.a) # (batch_size, output_dim) * (batch_size, output_dim) # Wenn es nur einen "Gesamt"-Output gibt (batch_size, 1)
            return self.delta
        else: # Hidden-Layer
@@ -41,11 +49,11 @@ class Layer:
     # -------------------------
     # Gewichte und Bias updaten
     # -------------------------
-    def update_val(self, eta, *args): # *args makes that you can add additional arguments in the optimizer class and don't have to change the Network.update_vals
-        # Addition von delta_W, weil der Gradient schon negativ definiert ist
-        self.weight_matrix += eta * (self.delta.T @ self.input) # (1,) * (output_dim, batch_size) @ (batch_size, input_dim) = (output_dim, input_dim)
+    def update_val(self, eta):
+        # Gradient (zeigt Richtung Maxima) wird abgezogen
+        self.weight_matrix -= eta * (self.delta.T @ self.input) # (1,) * (output_dim, batch_size) @ (batch_size, input_dim) = (output_dim, input_dim)
         # damit np.sum() den array nicht abflacht keepdims=True
-        self.bias_vector += (eta * self.delta).sum(axis=0, keepdims=True) # (batch_size, output_dim) --> (1, output_dim) (mit der sum-Funktion werden alle Zeilen von self.delta addiert
+        self.bias_vector -= (eta * self.delta).sum(axis=0, keepdims=True) # (batch_size, output_dim) --> (1, output_dim) (mit der sum-Funktion werden alle Zeilen von self.delta addiert
 
     # ---------------------------
     # Ableitung der loss-Funktion

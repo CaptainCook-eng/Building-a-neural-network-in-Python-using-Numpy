@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "NeuralNetwork"
-version = 0.0.1
+version = "0.0.1"
 authors = [
     {name="CaptainCook", email="erik.hybel@gmx.de"}
 ]
@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: OS Independent", # terminating comma, why is it needed?
 ]
 
-
+# TODO: URL's einfügen
 [project.urls]
 Homepage = "https://github" # hier muss die github URL rein
 Documentation = ""
