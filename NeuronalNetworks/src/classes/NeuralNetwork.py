@@ -9,7 +9,7 @@ root_file = current_file.parent.parent.parent
 
 class NeuralNetwork:
 
-    def __init__(self, list_layers, loss_type="mse", eta=0.1, optimizer=None):
+    def __init__(self, list_layers, loss_type="mse", eta=0.1, optimizer=None): # setting hyperparameters
         self.list_layers = list_layers
         # nur einmal verwendete Instanzvariable könnte vielleicht rausgelassen werden
         self.length = len(self.list_layers)
@@ -22,7 +22,7 @@ class NeuralNetwork:
         # json kann keine arrays speichern deswegen .tolist()
         self.value_dict = {i: {"weight": layer.weight_matrix.tolist(), "bias": layer.bias_vector.tolist()} for i, layer in enumerate(self.list_layers)}
 
-        # Variable die den Gradient descent tweaken
+        # Variable die den Gradient descent tweaken # hyperparameters
         self.eta = eta
         self.optimizer = optimizer
 

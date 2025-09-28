@@ -65,7 +65,7 @@ Net = NeuralNetwork([Layer1, Layer2, Layer3],eta=0.001, loss_type="cce", optimiz
 
 mean_errors = []
 
-Net.load_vals(Net.filename)
+# Net.load_vals(Net.filename)
 
 observations = np.hstack((training_inputs, training_labels))
 samples, features_plus_labels = observations.shape

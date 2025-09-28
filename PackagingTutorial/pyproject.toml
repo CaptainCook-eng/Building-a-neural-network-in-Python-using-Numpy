@@ -1,0 +1,25 @@
+# metadata of the project
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "example_package_CaptainCook"
+version = "0.0.1"
+authors = [
+    { name="CaptainCook", email="erik.hybel@gmx.de"}
+]
+description = "An example package from a tutorial on the Python doc"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent", # Independent of the operating system, works everywhere
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"] # Syntax used: [CS] means either C or S, * match anything -> zero or more characters after
+
+[project.urls]
+Homepage = "https://github.com/" # mein github muss hier hin
+Issues = "https://github.com/" # github issues
